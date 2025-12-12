@@ -1,0 +1,82 @@
+"Asm.fif" include
+// automatically generated from jetton_minter.tolk
+PROGRAM{
+  0 DECLMETHOD onInternalMessage()
+  130343 DECLMETHOD get_balance()
+  // 2 functions inlined in-place:
+  // - Storage.load (2 calls)
+  // - Storage.save (1 call)
+  // contracts/jetton_minter.tolk:21
+  onInternalMessage() PROC:<{ 	//  in.body
+    // 21: fun onInternalMessage(in: InMessage)
+    INMSG_BOUNCED           	//  in.body '1
+    0 THROWIF               	//  in.body
+    // 22: if (in.body.isEmpty())
+    DUP                     	//  in.body in.body
+    SEMPTY                  	//  in.body '4
+    IFJMP:<{                	//  in.body
+      // 23: return
+      DROP                  	// 
+    }>                      	//  cs
+    // 27: val opcode = cs.loadUint(32)
+    32 LDU                  	//  opcode cs
+    // 29: if (opcode == 0x23)
+    SWAP                    	//  cs opcode
+    35 EQINT                	//  cs '12
+    IFJMP:<{                	//  cs
+      // 30: val amount = cs.loadUint(128) as UInt128
+      128 LDU               	//  amount cs
+      // 31: val recipientWallet = cs.loadAddress()
+      LDSTDADDR             	//  amount '20 '19
+      DROP                  	//  amount recipientWallet
+      // 33: if (recipientWallet != contract.getAddress())
+      MYADDR                	//  amount recipientWallet '22
+      SDEQ                  	//  amount '23
+      IFNOTJMP:<{           	//  amount
+        // 34: throw 201
+        201 THROW
+      }>                    	//  amount
+      // 14: return Storage.fromCell(contract.getData())
+      c4 PUSH               	//  amount '31
+      CTOS                  	//  amount s
+      LDSTDADDR             	//  amount '35 s
+      LDSTDADDR             	//  amount '35 '36 s
+      128 LDU               	//  amount '35 '36 '38 s
+      ENDS                  	//  amount st.owner st.master st.balance
+      // 38: if (in.senderAddress != st.master)
+      INMSG_SRC             	//  amount st.owner st.master st.balance '39
+      s2 PUSH               	//  amount st.owner st.master st.balance '39 st.master
+      SDEQ                  	//  amount st.owner st.master st.balance '41
+      IFNOTJMP:<{           	//  amount st.owner st.master st.balance
+        // 39: throw 200
+        200 THROW
+      }>                    	//  amount st.owner st.master st.balance
+      s0 s3 XCHG2           	//  st.master st.owner st.balance amount
+      // 41: st.balance = st.balance + amount
+      ADD                   	//  st.master st.owner st.balance
+      // 18: contract.setData(self.toCell())
+      SWAP
+      NEWC                  	//  st.master st.balance st.owner b
+      STSTDADDR             	//  st.master st.balance b
+      s1 s2 XCHG            	//  st.balance st.master b
+      STSTDADDR             	//  st.balance b
+      128 STU               	//  b
+      ENDC                  	//  '47
+      c4 POP                	// 
+    }>                      	//  cs
+    DROP                    	// 
+  }>
+  // contracts/jetton_minter.tolk:50
+  get_balance() PROC:<{       	// 
+    // 14: return Storage.fromCell(contract.getData())
+    c4 PUSH                 	//  '4
+    // 51: val st = lazy Storage.load()
+    CTOS                    	//  lazyS
+    // 52: return st.balance as int
+    LDSTDADDR               	//  '8 lazyS
+    NIP                     	//  lazyS
+    LDSTDADDR               	//  '9 lazyS
+    NIP                     	//  lazyS
+    128 PLDU                	//  st.balance
+  }>
+}END>c

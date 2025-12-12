@@ -9,9 +9,10 @@
         "release": "blueprint pack && npm publish --access public"
     },
     "dependencies": {
-        "@ton/core": "~0",
+        "@ton/core": "^0.62.0",
         "@tonconnect/sdk": "^3.3.1",
-        "@tonconnect/ui": "^2.3.1"
+        "@tonconnect/ui": "^2.3.1",
+        "express": "^5.2.1"
     },
     "devDependencies": {
         "@tact-lang/compiler": ">=1.6.13 <2.0.0",
@@ -22,6 +23,7 @@
         "@ton/test-utils": ">=0.11.0",
         "@ton/tolk-js": ">=1.0.0",
         "@ton/ton": ">=15.3.1 <16.0.0",
+        "@types/express": "^5.0.6",
         "@types/jest": "^30.0.0",
         "@types/node": "^22.17.2",
         "jest": "^30.0.5",
