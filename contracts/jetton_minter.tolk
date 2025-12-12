@@ -1,115 +1,81 @@
-// Jetton Minter Contract
+// jetton_wallet.tolk
+module JettonWallet
 
-// Error codes
-const ERR_NOT_OWNER = 100;
-const ERR_NOT_MINTABLE = 101;
-const ERR_NOT_TRUSTED = 102;
+import std::cell
+import std::msg
+import std::tvm
+import std::slice
 
+type Address = b256
+type UInt128 = u128
+type Cell = cell
+
+// Storage holds owner (the user or address that controls this wallet), master (minter) and balance
 struct Storage {
-  ownerAddress: address;
-  walletCode: cell;
-  totalMinted: uint128;
-  mintable: bool;
-  trusted: map<address, bool>;
+  owner: Address,
+  master: Address,
+  balance: UInt128
 }
 
-fun Storage.load(): Storage {
-  return Storage.fromCell(contract.getData());
+// Constructor: wallet data must be (owner, master) in that order in stateInit data.
+constructor(owner: Address, master: Address) {
+  self.storage = Storage {
+    owner: owner,
+    master: master,
+    balance: 0u128
+  }
 }
 
-fun Storage.save(self) {
-  contract.setData(self.toCell());
+// Helper to assert caller is owner (if needed for outgoing transfers)
+priv func require_owner(ctx: Context) -> () {
+  if ctx.caller != self.storage.owner {
+    tvm::revert(200, "Not owner")
+  }
 }
 
-struct (0x00000001) DeployWallet {
-  owner: address;
+// Public view: get balance
+pub func get_balance() -> UInt128 {
+  return self.storage.balance;
 }
 
-struct (0x00000002) Mint {
-  to: address;
-  amount: uint128;
-}
-
-struct (0x00000003) BurnNotify {
-  from: address;
-  amount: uint128;
-}
-
-struct (0x00000004) SetTrusted {
-  addr: address;
-  trusted: bool;
-}
-
-type AllowedMessage = DeployWallet | Mint | BurnNotify | SetTrusted;
-
-fun onInternalMessage(in: InMessage) {
-  if (in.body.isEmpty()) {
+// Handler for internal messages with payloads
+// We parse the payload cell and if opcode == 0x23, interpret as mint(payload)
+receive(payload: Cell, ctx: Context) {
+  // if no payload, do nothing
+  if payload.is_empty() {
     return;
   }
 
-  val msg = lazy AllowedMessage.fromSlice(in.body);
+  // read payload header (uint32 opcode)
+  let cell_slice = payload.as_slice();
+  let opcode = cell_slice.load_uint(32);
 
-  match (msg) {
-    DeployWallet => {
-      val storage = lazy Storage.load();
-      assert(in.senderAddress == storage.ownerAddress) throw ERR_NOT_OWNER;
-      return;
+  if opcode == 0x23u32 {
+    // Mint opcode
+    // Next field: uint128 amount
+    let amount = cell_slice.load_uint_u128(128);
+    // Next field: recipient_wallet address (256-bit)
+    let recipient_wallet = cell_slice.load_address();
+
+    // For safety: ensure recipient_wallet equals the address of THIS wallet.
+    // If it does not, we still allow crediting the recipient address only if business logic allows it.
+    let self_addr = self.address();
+    if recipient_wallet != self_addr {
+      // In strict flow, reject or forward — here we simply reject to avoid mis-crediting
+      tvm::revert(201, "Recipient mismatch");
     }
-    Mint => {
-      var storage = lazy Storage.load();
-      assert(in.senderAddress == storage.ownerAddress) throw ERR_NOT_OWNER;
-      assert(storage.mintable) throw ERR_NOT_MINTABLE;
-      storage.totalMinted += msg.amount;
-      storage.save();
-      // Deploy wallet if needed and send tokens
-      // (Implementation depends on your wallet contract)
-      // ...
-      return;
-    }
-    BurnNotify => {
-      var storage = lazy Storage.load();
-      val lookup = storage.trusted.get(in.senderAddress);
-      val isTrusted = lookup.isFound ? lookup.loadValue() : false;
-      assert(isTrusted) throw ERR_NOT_TRUSTED;
-      storage.totalMinted -= msg.amount;
-      storage.save();
-      return;
-    }
-    SetTrusted => {
-      var storage = lazy Storage.load();
-      assert(in.senderAddress == storage.ownerAddress) throw ERR_NOT_OWNER;
-      storage.trusted.set(msg.addr, msg.trusted);
-      storage.save();
-      return;
-    }
-    else => {
-      assert(in.body.isEmpty()) throw 0xFFFF;
-    }
+
+    // Credit the balance
+    self.storage.balance = self.storage.balance + amount;
+
+    // Optionally: emit or send a small internal message back to master to acknowledge mint (not required)
+    // e.g., send a log or call
+    // msg::send(self.storage.master, 0u64, 0u64, <optional payload>)
+
+    return;
+  } else {
+    // Unknown opcode: ignore or revert depending on policy
+    // Accept other wallet operations here (transfer out) if you extend the wallet
+    return;
   }
-}
-
-get fun totalSupply(): int {
-  val storage = lazy Storage.load();
-  return storage.totalMinted;
-}
-
-get fun getOwner(): address {
-  val storage = lazy Storage.load();
-  return storage.ownerAddress;
-}
-
-get fun getWalletCode(): cell {
-  val storage = lazy Storage.load();
-  return storage.walletCode;
-}
-
-get fun isMintable(): bool {
-  val storage = lazy Storage.load();
-  return storage.mintable;
-}
-
-get fun isTrusted(addr: address): bool {
-  val storage = lazy Storage.load();
-  val lookup = storage.trusted.get(addr);
-  return lookup.isFound ? lookup.loadValue() : false;
 }
