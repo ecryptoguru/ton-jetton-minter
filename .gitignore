@@ -21,3 +21,8 @@ Session.vim
 .nvim/
 .emacs/
 .helix/
+
+# Backend
+backend/.env
+
+.env
