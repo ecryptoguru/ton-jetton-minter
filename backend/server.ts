@@ -47,7 +47,8 @@ let walletCodeCell: Cell | null = null;
  * Returns a Cell or throws.
  */
 function loadCellFromBocBuffer(buf: Buffer): Cell {
-  const arr = Cell.fromBoc(buf);
+  // Cell.fromBoc accepts Uint8Array buffer and returns array of Cell
+  const arr = Cell.fromBoc(new Uint8Array(buf));
   if (!arr || arr.length === 0) throw new Error('Cell.fromBoc returned empty array');
   // If the BOC contains multiple top-level cells, typically the first is code.
   return arr[0];
@@ -203,7 +204,8 @@ function buildMintPayloadBase64(amountBn: bigint, recipientWalletAddr: Address):
   b.storeUint(amountBn, 128);
   b.storeAddress(recipientWalletAddr);
   const c = b.endCell();
-  return c.toBoc().toString('base64');
+  const boc = Cell.toBoc([c]);
+  return Buffer.from(boc[0]).toString('base64');
 }
 
 /**
@@ -216,7 +218,7 @@ function computeJettonWalletAddress(masterAddr: Address, ownerAddr: Address, wal
   db.storeAddress(ownerAddr);
   db.storeAddress(masterAddr);
   const dataCell = db.endCell();
-  const addr = contractAddress(0, { code: walletCode, data: dataCell });
+  const addr = contractAddress({ workchain: 0, code: walletCode, data: dataCell });
   return addr;
 }
 
