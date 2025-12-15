@@ -1,26 +1,28 @@
-# ton-jetton-minter
+# TON Jetton Minter DApp
 
-## Project structure
 
--   `contracts` - source code of all the smart contracts of the project and their dependencies.
--   `wrappers` - wrapper classes (implementing `Contract` from ton-core) for the contracts, including any [de]serialization primitives and compilation functions.
--   `tests` - tests for the contracts.
--   `scripts` - scripts used by the project, mainly the deployment scripts.
+This repository contains:
+- Tolk smart contracts: Jetton Minter and Jetton Wallet
+- Blueprint CLI configuration for build/test/deploy
+- Sandbox test scaffold
+- Frontend dApp (Next.js 14, App Router) using TON Connect
+- Small Express backend endpoint to build mint payloads
 
-## How to use
 
-### Build
+## Quick start
+1. Install root dev deps: `npm install` (root uses blueprint tools where applicable)
+2. Build contracts: `npx blueprint build`
+3. Start backend (in `backend/`): `NODE_ENV=development MINTER_ADDRESS=<minter_address> node server.js`
+4. Start frontend (in `frontend/nextjs-app`): `npm install` then `npm run dev`
+5. Use the dApp UI, connect wallet, and test mint flows (Testnet)
 
-`npx blueprint build` or `yarn blueprint build`
 
-### Test
+## Environment
+- `DEPLOYER_MNEMONIC`: deployer wallet mnemonic for blueprint deploy.
+- `MINTER_OWNER_ADDRESS`: optional owner address for the minter constructor.
+- `MINTER_ADDRESS`: set after deploy to let backend compute wallet addresses.
 
-`npx blueprint test` or `yarn blueprint test`
 
-### Deploy or run another script
-
-`npx blueprint run` or `yarn blueprint run`
-
-### Add a new contract
-
-`npx blueprint create ContractName` or `yarn blueprint create ContractName`
+## Notes
+- Run Sandbox tests and measure gas before pushing to Testnet/Mainnet.
+- Validate ABI alignment between minter and wallet.
