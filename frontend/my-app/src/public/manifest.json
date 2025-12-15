@@ -1,0 +1,7 @@
+{
+  "name": "Jetton Minter dApp",
+  "short_name": "JettonMinter",
+  "description": "TON Jetton minter example (Next 14)",
+  "start_url": "/",
+  "display": "standalone"
+}
